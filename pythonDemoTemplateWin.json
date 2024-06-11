@@ -1,0 +1,75 @@
+{
+    "type": "Microsoft.VirtualMachineImages/imageTemplates",
+    "apiVersion": "2022-02-14",
+    "location": "australiaeast",
+    "dependsOn": [],
+    "tags": {
+        "imagebuilderTemplate": "win11multi",
+        "userIdentity": "enabled"
+            },
+        "identity": {
+            "type": "UserAssigned",
+                    "userAssignedIdentities": {
+                    "/subscriptions/0b26b28d-46fb-4dca-a95d-94ceeebb92c2/resourcegroups/rg-devbox-demo-aae/providers/Microsoft.ManagedIdentity/userAssignedIdentities/testBuilderId": {}
+                }
+                },
+    "properties": {
+
+        "buildTimeoutInMinutes" : 100,
+
+        "vmProfile": 
+                {
+                "vmSize": "Standard_D2s_v3",
+                "osDiskSizeGB": 127
+                },
+        
+        "source": {
+            "type": "PlatformImage",
+            "publisher": "MicrosoftWindowsDesktop",
+            "offer": "Windows-11",
+            "sku": "win11-21h2-ent",
+            "version": "latest"
+        },
+        "customize": [
+            {
+                "type": "PowerShell",
+                "name": "Install Software",
+                "runElevated": true,
+                "inline": [
+                    "winget install --accept-package-agreements --silent python3",
+                    "winget install --accept-package-agreements --silent vscode",
+                    "winget install --accept-package-agreements --silent Git.Git",
+                    "winget install --accept-package-agreements --silent Hashicorp.Terraform"
+                ]
+                
+            },
+            {
+                "type": "WindowsRestart",
+                "restartCheckCommand": "echo Azure-Image-Builder-Restarted-the-VM  > c:\\buildArtifacts\\azureImageBuilderRestart.txt",
+                "restartTimeout": "5m"
+            },
+            {
+                "type": "WindowsUpdate",
+                "searchCriteria": "IsInstalled=0",
+                "filters": [
+                    "exclude:$_.Title -like '*Preview*'",
+                    "include:$true"
+                            ],
+                "updateLimit": 20
+            }
+        ],
+        "distribute": 
+            [
+                {   "type":"ManagedImage",
+                    "imageId": "/subscriptions/0b26b28d-46fb-4dca-a95d-94ceeebb92c2/resourceGroups/rg-devbox-demo-aae/providers/Microsoft.Compute/images/pyvscodetfwin11",
+                    "location": "australiaeast",
+                    "runOutputName": "PythonVsCodeTerraformWin11",
+                    "artifactTags": {
+                        "source": "azVmImageBuilder",
+                        "baseosimg": "win11multi"
+                    }
+                }
+            ]
+        }
+}
+
